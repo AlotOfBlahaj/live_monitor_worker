@@ -51,7 +51,7 @@ def worker():
     logger.info('Bot worker is already running')
     while True:
         video_dict = sub.do_subscribe()
-        if video_dict is False:
+        if video_dict is not False:
             call_bot(video_dict)
 
 

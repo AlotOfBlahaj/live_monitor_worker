@@ -1,7 +1,12 @@
 config = {
+    'enable_proxy': False,
+    'proxy': '',
     'bot_host': '',
-    'group_id': [''],
+    'group_id': ('',),
     'bot_token': '',
+    'ddir': '/home/ubuntu/Matsuri',
+    'youtube_quality': '720p',
+    'enable_upload': 'True',
     'users': [
         {
             'user': 'natsuiromatsuri',
