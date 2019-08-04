@@ -23,6 +23,12 @@ config = {
             'ddir': 'rushia',
             'bot_notice': False,
             'download': True
+        },
+        {
+            'user': 'bilibili',
+            'ddir': '',
+            'bot_notice': True,
+            'download': False
         }
     ]
 }
