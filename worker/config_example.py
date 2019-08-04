@@ -8,6 +8,7 @@ config = {
     'youtube_quality': '720p',
     'enable_upload': 'True',
     'upload_by': 'bd',
+    'cq_ddir': '/home/fzxiao/Matsuri',
     's3_access_key': '',
     's3_secret_key': '',
     'enable_mongodb': False,
