@@ -1,4 +1,3 @@
-import json
 import logging
 from functools import wraps
 from os import mkdir
@@ -6,9 +5,7 @@ from os.path import abspath, dirname, isdir
 from time import strftime, localtime, time, sleep
 
 import pymongo
-import requests
 from bson import ObjectId
-from retrying import retry
 
 from config import config
 
@@ -23,31 +20,33 @@ proxies = {
 }
 
 
-@retry(wait_fixed=config['error_sec'])
-def get(url: str, mode='text'):
-    try:
-        if config['enable_proxy']:
-            r = requests.get(url, headers=fake_headers, proxies=proxies)
-        else:
-            r = requests.get(url, headers=fake_headers)
-        if mode == 'img':
-            return r
-        else:
-            return r.text
-    except requests.RequestException:
-        logger = logging.getLogger('run.get')
-        logger.exception('Network Error')
-
-
-def get_json(url: str) -> dict:
-    try:
-        return json.loads(get(url))
-    except json.decoder.JSONDecodeError:
-        logger = logging.getLogger('run.get_json')
-        logger.exception('Load Json Error')
+# @retry(wait_fixed=config['error_sec'])
+# def get(url: str, mode='text'):
+#     try:
+#         if config['enable_proxy']:
+#             r = requests.get(url, headers=fake_headers, proxies=proxies)
+#         else:
+#             r = requests.get(url, headers=fake_headers)
+#         if mode == 'img':
+#             return r
+#         else:
+#             return r.text
+#     except requests.RequestException:
+#         logger = logging.getLogger('run.get')
+#         logger.exception('Network Error')
+#
+#
+# def get_json(url: str) -> dict:
+#     try:
+#         return json.loads(get(url))
+#     except json.decoder.JSONDecodeError:
+#         logger = logging.getLogger('run.get_json')
+#         logger.exception('Load Json Error')
 
 
 def get_logger():
+    if not isdir('log'):
+        mkdir('log')
     logger = logging.getLogger('run')
     today = strftime('%m-%d', localtime(time()))
     stream_handler = logging.StreamHandler()
@@ -61,9 +60,6 @@ def get_logger():
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
     return logger
-
-
-
 
 
 class Database:
@@ -107,7 +103,7 @@ def check_ddir_is_exist(ddir=config['ddir']):
             logger = logging.getLogger('run.check_ddir')
             logger.exception('下载目录（ddir）配置错误，请选择可用的目录')
             exit(-1)
-   
+
 
 def get_ddir(user_config):
     try:
@@ -118,3 +114,11 @@ def get_ddir(user_config):
     except KeyError:
         ddir = config['ddir']
     return ddir
+
+
+def get_user(name):
+    for user in config['users']:
+        if name == user['user']:
+            return user
+    else:
+        raise RuntimeError(f'Can not find {name}')
