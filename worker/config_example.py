@@ -7,6 +7,10 @@ config = {
     'ddir': '/home/ubuntu/Matsuri',
     'youtube_quality': '720p',
     'enable_upload': 'True',
+    'upload_by': 'bd',
+    's3_access_key': '',
+    's3_secret_key': '',
+    'enable_mongodb': False,
     'users': [
         {
             'user': 'natsuiromatsuri',
