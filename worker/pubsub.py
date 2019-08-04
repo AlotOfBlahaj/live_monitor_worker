@@ -24,6 +24,18 @@ class Subscriber:
             logger.info(_data)
         return _data
 
+    def do_subscribe_nowait(self):
+        data = self.sub.parse_response(block=False)
+        if data is None:
+            return False
+        logger.info(f'recv {data}')
+        if isinstance(data[2], int):
+            _data = False
+        else:
+            _data = json.loads(data[2])
+            logger.info(_data)
+        return _data
+
 
 class Publisher:
     def __init__(self):

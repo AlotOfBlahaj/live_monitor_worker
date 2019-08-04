@@ -41,7 +41,7 @@ def call_bot(video_dict):
                     f"[直播提示] {video_dict['Provide']} {video_dict.get('Title')} 正在直播 链接: {video_dict['Target']} [CQ:at,qq=all]",
                     group_id)
             elif video_dict['Provide'] == 'Bilibili':
-                bot(f'[烤肉提示] [Bilibili] {video_dict.get("Title")} 链接: {video_dict.get("Ref")}', group_id)
+                bot(f'[烤肉提示] [Bilibili] {video_dict.get("Title")} 链接: {video_dict.get("Target")}', group_id)
         else:
             bot(video_dict['Msg'], group_id)
 
