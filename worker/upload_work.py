@@ -101,12 +101,27 @@ def upload_video(video_dict):
     pub.do_publish(data, 'bot')
 
 
+def upload_record(upload_dict):
+    user_config = get_user(upload_dict['User'])
+    ddir = get_ddir(user_config)
+    uploader = BDUpload()
+    uploader.upload_item(f"{ddir}/{upload_dict['Title']}", upload_dict['Title'])
+    if config['upload_by'] == 'bd':
+        share_url = uploader.share_item(upload_dict['Title'])
+        if config['enable_mongodb']:
+            db = Database(upload_dict['User'])
+            db.modify(upload_dict['Title'], share_url)
+
+
 def worker():
     sub = Subscriber(('upload',))
     while True:
         data = sub.do_subscribe()
         if data is not False:
-            t = Thread(target=upload_video, args=(data,), daemon=True)
+            if 'Record' in data:
+                t = Thread(target=upload_record, args=(data,), daemon=True)
+            else:
+                t = Thread(target=upload_video, args=(data,), daemon=True)
             t.start()
 
 

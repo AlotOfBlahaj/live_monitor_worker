@@ -1,12 +1,10 @@
-import re
 import subprocess
 from os.path import isfile
 from threading import Thread
-from time import time
 
 from config import config
 from pubsub import Subscriber, Publisher
-from tools import check_ddir_is_exist, get_ddir, get_logger, get_user
+from tools import check_ddir_is_exist, get_ddir, get_logger, get_user, AdjustFileName
 
 logger = get_logger()
 
@@ -39,44 +37,6 @@ def downloader(link, title, dl_proxy, ddir, user_config, quality='best'):
         # 不应该使用os.system
 
 
-class AdjustFileName:
-
-    def __init__(self, filename):
-        self.filename = filename
-
-    def title_block(self):
-        replace_list = ['|', '/', '\\', ':']
-        for x in replace_list:
-            self.filename = self.filename.replace(x, '#')
-
-    def file_exist(self, ddir):
-        paths = f'{ddir}/{self.filename}.ts'
-        if isfile(paths):
-            self.filename = self.filename + f'_{time()}.ts'
-        else:
-            self.filename = self.filename + '.ts'
-
-    def filename_length_limit(self):
-        lens = len(self.filename)
-        if lens > 80:
-            self.filename = self.filename[:80]
-
-    def remove_emoji(self):
-        emoji_pattern = re.compile(
-            u'(\U0001F1F2\U0001F1F4)|'  # Macau flag
-            u'([\U0001F1E6-\U0001F1FF]{2})|'  # flags
-            u'([\U0001F600-\U0001F64F])'  # emoticons
-            "+", flags=re.UNICODE)
-        self.filename = emoji_pattern.sub('', self.filename)
-
-    def adjust(self, ddir):
-        self.remove_emoji()
-        self.title_block()
-        self.filename_length_limit()
-        self.file_exist(ddir)
-        return self.filename
-
-
 def process_video(video_dict):
     """
     处理直播视频，包含bot的发送，视频下载，视频上传和存入数据库
@@ -102,6 +62,7 @@ def process_video(video_dict):
         pub.do_publish(data, 'bot')
     if config['enable_upload']:
         pub.do_publish(video_dict, 'upload')
+        pub.do_publish(video_dict, 'cq')
 
 
 def worker():

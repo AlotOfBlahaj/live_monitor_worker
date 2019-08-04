@@ -1,7 +1,8 @@
 import logging
+import re
 from functools import wraps
 from os import mkdir
-from os.path import abspath, dirname, isdir
+from os.path import abspath, dirname, isdir, isfile
 from time import strftime, localtime, time, sleep
 
 import pymongo
@@ -80,8 +81,12 @@ class Database:
     def insert(self, _title, _link, _date):
         vdict = {"Title": _title,
                  "Link": _link,
-                 "Date": _date}
+                 "Date": _date, }
         result = self.db.insert_one(vdict)
+        self.logger.info(result)
+
+    def modify(self, _title, _link):
+        result = self.db.find_and_modify({"Title": _title}, {"Record": _link})
         self.logger.info(result)
 
 
@@ -122,3 +127,41 @@ def get_user(name):
             return user
     else:
         raise RuntimeError(f'Can not find {name}')
+
+
+class AdjustFileName:
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def title_block(self):
+        replace_list = ['|', '/', '\\', ':']
+        for x in replace_list:
+            self.filename = self.filename.replace(x, '#')
+
+    def file_exist(self, ddir):
+        paths = f'{ddir}/{self.filename}.ts'
+        if isfile(paths):
+            self.filename = self.filename + f'_{time()}.ts'
+        else:
+            self.filename = self.filename + '.ts'
+
+    def filename_length_limit(self):
+        lens = len(self.filename)
+        if lens > 80:
+            self.filename = self.filename[:80]
+
+    def remove_emoji(self):
+        emoji_pattern = re.compile(
+            u'(\U0001F1F2\U0001F1F4)|'  # Macau flag
+            u'([\U0001F1E6-\U0001F1FF]{2})|'  # flags
+            u'([\U0001F600-\U0001F64F])'  # emoticons
+            "+", flags=re.UNICODE)
+        self.filename = emoji_pattern.sub('', self.filename)
+
+    def adjust(self, ddir):
+        self.remove_emoji()
+        self.title_block()
+        self.filename_length_limit()
+        self.file_exist(ddir)
+        return self.filename
