@@ -111,6 +111,10 @@ def upload_record(upload_dict):
         if config['enable_mongodb']:
             db = Database(upload_dict['User'])
             db.modify(upload_dict['Title'], share_url)
+            pub = Publisher()
+            data = {'Msg': f"[同传提示] {upload_dict['Title']} 已记录, 请查看https://matsuri.design/",
+                    'User': user_config['User']}
+            pub.do_publish(data, 'bot')
 
 
 def worker():
