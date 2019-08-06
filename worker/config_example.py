@@ -16,19 +16,22 @@ config = {
         {
             'user': 'natsuiromatsuri',
             'bot_notice': True,
-            'download': True
+            'download': True,
+            'record': False
         },
         {
             'user': 'UCl_gCybOJRIgOXw6Qb4qJzQ',
             'ddir': 'rushia',
             'bot_notice': False,
-            'download': True
+            'download': True,
+            'record': False
         },
         {
             'user': 'bilibili',
             'ddir': '',
             'bot_notice': True,
-            'download': False
+            'download': False,
+            'record': False
         }
     ]
 }

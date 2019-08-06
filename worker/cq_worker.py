@@ -11,6 +11,8 @@ logger = get_logger()
 async def main(video_dict):
     sub = Subscriber(('cq',))
     user_config = get_user(video_dict['User'])
+    if not user_config['record']:
+        return None
     ddir = get_ddir(user_config)
     video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
     while True:

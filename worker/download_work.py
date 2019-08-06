@@ -44,8 +44,8 @@ def process_video(video_dict):
     :return: None
     """
     user_config = get_user(video_dict['User'])
-    assert 'bot_notice' in user_config
-    assert 'download' in user_config
+    if not user_config['download']:
+        return None
     ddir = get_ddir(user_config)
     check_ddir_is_exist(ddir)
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
