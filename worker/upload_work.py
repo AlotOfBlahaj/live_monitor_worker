@@ -85,14 +85,11 @@ def upload_video(video_dict):
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(video_dict['Title'])
         if config['enable_mongodb']:
-            db = Database(video_dict['User'])
-            db.insert(video_dict['Title'], share_url, video_dict['Date'])
+            insert_video(video_dict['User'], video_dict['Title'], share_url, video_dict['Date'])
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
-            db = Database(video_dict['User'])
-            db.insert(video_dict['Title'],
-                      f"gets3/{quote(video_dict['Title'])}",
-                      video_dict['Date'])
+            share_url = f"gets3/{quote(video_dict['Title'])}"
+            insert_video(video_dict['User'], video_dict['Title'], share_url, video_dict['Date'])
     else:
         raise RuntimeError(f'Upload {video_dict["Title"]} failed')
     pub = Publisher()
@@ -109,12 +106,20 @@ def upload_record(upload_dict):
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
-            db = Database(upload_dict['User'])
-            db.modify(upload_dict['Title'], share_url)
+            insert_video(upload_dict['User'], upload_dict['Title'], _record=share_url)
             pub = Publisher()
             data = {'Msg': f"[同传提示] {upload_dict['Title']} 已记录, 请查看https://matsuri.design/",
                     'User': user_config['User']}
             pub.do_publish(data, 'bot')
+
+
+def insert_video(collection, _title, _link=None, _date=None, _record=None):
+    _dict = {"Title": _title,
+             "Link": _link,
+             "Date": _date,
+             "Record": _record}
+    db = Database(collection)
+    db.auto_insert(_title, _dict)
 
 
 def worker():

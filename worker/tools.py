@@ -1,9 +1,8 @@
 import logging
 import re
-from functools import wraps
 from os import mkdir
 from os.path import abspath, dirname, isdir, isfile
-from time import strftime, localtime, time, sleep
+from time import strftime, localtime, time
 
 import pymongo
 from bson import ObjectId
@@ -78,26 +77,20 @@ class Database:
         self.db.delete_one({"_id": ObjectId(_id)})
         self.logger.info(f"ID: {_id} has been deleted")
 
-    def insert(self, _title, _link, _date):
-        vdict = {"Title": _title,
-                 "Link": _link,
-                 "Date": _date, }
-        result = self.db.insert_one(vdict)
+    def _insert(self, _dict):
+        result = self.db.insert_one(_dict)
         self.logger.info(result)
 
-    def modify(self, _title, _link):
-        result = self.db.find_and_modify({"Title": _title}, {"Record": _link})
+    def _modify(self, _title, _dict):
+        result = self.db.find_one_and_update({"Title": _title}, {'$set': _dict})
         self.logger.info(result)
 
-
-def while_warp(func):
-    @wraps(func)
-    def warp(*args, **kwargs):
-        while True:
-            func(*args, *kwargs)
-            sleep(config['sec'])
-
-    return warp
+    def auto_insert(self, _title, _dict):
+        result = self.db.find_one({'Title': _title})
+        if not result:
+            self._insert(_dict)
+        else:
+            self._modify(_title, _dict)
 
 
 def check_ddir_is_exist(ddir=config['ddir']):
