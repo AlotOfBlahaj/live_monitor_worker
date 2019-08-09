@@ -11,6 +11,7 @@ config = {
     'cq_ddir': '/home/fzxiao/Matsuri',
     's3_access_key': '',
     's3_secret_key': '',
+    'cq_ws_uri': 'ws://bot.wudifeixue.com:5006/event',
     'enable_mongodb': False,
     'users': [
         {
