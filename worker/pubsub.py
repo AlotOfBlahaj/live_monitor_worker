@@ -15,14 +15,15 @@ class Subscriber:
         logger.info('Subscriber is running')
 
     def do_subscribe(self) -> dict:
-        data = self.sub.parse_response()
-        logger.info(f'recv {data}')
-        if isinstance(data[2], int):
-            _data = False
-        else:
-            _data = json.loads(data[2])
-            logger.info(_data)
-        return _data
+        while True:
+            data = self.sub.parse_response()
+            logger.info(f'recv {data}')
+            if isinstance(data[2], int):
+                continue
+            else:
+                _data = json.loads(data[2])
+                logger.info(_data)
+                return _data
 
     def do_subscribe_nowait(self):
         data = self.sub.parse_response(block=False)
