@@ -49,7 +49,7 @@ def process_video(video_dict):
     ddir = get_ddir(user_config)
     check_ddir_is_exist(ddir)
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
-    video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
+    video_dict['Title'] = AdjustFileName(video_dict['Title'] + '.ts').adjust(ddir)
     if video_dict["Provide"] == 'Youtube':
         result = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
                             config['proxy'], ddir, user_config, config['youtube_quality'])
@@ -58,11 +58,19 @@ def process_video(video_dict):
     pub = Publisher()
     if result:
         data = {'Msg': f"[下载提示] {result} 已下载完成，等待上传",
-                'User': user_config['User']}
+                'User': user_config['user']}
+        logger.warning(data)
         pub.do_publish(data, 'bot')
     if config['enable_upload']:
-        pub.do_publish(video_dict, 'upload')
-        pub.do_publish(video_dict, 'cq')
+        upload_dict = {
+            'Title': video_dict['Title'],
+            'Target': video_dict['Target'],
+            'Date': video_dict['Date'],
+            'Path': f'{ddir}/{video_dict["Title"]}',
+            'User': video_dict['User']
+        }
+        pub.do_publish(upload_dict, 'upload')
+        pub.do_publish(video_dict['Target'], 'cq')
 
 
 def worker():

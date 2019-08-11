@@ -1,3 +1,6 @@
+requests
+retrying
+minio
 certifi==2019.6.16
 chardet==3.0.4
 future==0.17.1

@@ -2,6 +2,7 @@ import logging
 import re
 import subprocess
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 from os import name
 from threading import Thread
 from urllib.parse import quote
@@ -18,24 +19,24 @@ logger = get_logger()
 
 class Upload(metaclass=ABCMeta):
     @abstractmethod
-    def upload_item(self, item_path, item_name):
+    def upload_item(self, item_path: str, item_name: str) -> None:
         pass
 
 
 class S3Upload(Upload):
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger('run.s3upload')
         self.minio = Minio(config['s3_server'],
                            access_key=config['s3_access_key'],
                            secret_key=config['s3_secret_key'],
                            secure=True)
 
-    def upload_item(self, item_path, item_name):
+    def upload_item(self, item_path: str, item_name: str) -> None:
         self.minio.fput_object('matsuri', item_name, item_path)
 
 
 class BDUpload(Upload):
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger('run.bdupload')
 
     def upload_item(self, item_path: str, item_name: str) -> None:
@@ -74,63 +75,67 @@ class BDUpload(Upload):
             raise RuntimeError('get share link error')
 
 
-def upload_video(video_dict):
+def upload_video(upload_dict: dict) -> None:
     upload_way_dict = {'bd': BDUpload,
                        's3': S3Upload}
     upload_way = upload_way_dict.get(config['upload_by'])
     uploader = upload_way()
-    user_config = get_user(video_dict['User'])
-    ddir = get_ddir(user_config)
-    uploader.upload_item(f"{ddir}/{video_dict['Title']}", video_dict['Title'])
-    if config['upload_by'] == 'bd':
-        share_url = uploader.share_item(video_dict['Title'])
-        if config['enable_mongodb']:
-            insert_video(video_dict['User'], video_dict['Title'], share_url, video_dict['Date'])
-    elif config['upload_by'] == 's3':
-        if config['enable_mongodb']:
-            share_url = f"gets3/{quote(video_dict['Title'])}"
-            insert_video(video_dict['User'], video_dict['Title'], share_url, video_dict['Date'])
-    else:
-        raise RuntimeError(f'Upload {video_dict["Title"]} failed')
-    pub = Publisher()
-    data = {'Msg': f"[下载提示] {video_dict['Title']} 已上传, 请查看https://matsuri.design/",
-            'User': user_config['User']}
-    pub.do_publish(data, 'bot')
-
-
-def upload_record(upload_dict):
     user_config = get_user(upload_dict['User'])
     ddir = get_ddir(user_config)
-    uploader = BDUpload()
     uploader.upload_item(f"{ddir}/{upload_dict['Title']}", upload_dict['Title'])
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
-            insert_video(upload_dict['User'], upload_dict['Title'], _record=share_url)
+            data = {"Title": upload_dict['Title'],
+                    "Date": upload_dict['Date'],
+                    "Record": share_url}
+            insert_video(upload_dict['User'], data)
+    elif config['upload_by'] == 's3':
+        if config['enable_mongodb']:
+            share_url = f"gets3/{quote(upload_dict['Title'])}"
+            data = {"Title": upload_dict['Title'],
+                    "Date": upload_dict['Date'],
+                    "Record": share_url}
+            insert_video(upload_dict['User'], data)
+    else:
+        raise RuntimeError(f'Upload {upload_dict["Title"]} failed')
+    pub = Publisher()
+    data = {'Msg': f"[下载提示] {upload_dict['Title']} 已上传, 请查看https://matsuri.design/",
+            'User': user_config['user']}
+    pub.do_publish(data, 'bot')
+
+
+def upload_record(upload_dict: dict) -> None:
+    user_config = get_user(upload_dict['User'])
+    uploader = BDUpload()
+    uploader.upload_item(upload_dict['Path'], upload_dict['Title'])
+    if config['upload_by'] == 'bd':
+        share_url = uploader.share_item(upload_dict['Title'])
+        if config['enable_mongodb']:
+            data = {"Title": upload_dict['Title'],
+                    "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "Record": share_url}
+            insert_video(upload_dict['User'], data)
             pub = Publisher()
             data = {'Msg': f"[同传提示] {upload_dict['Title']} 已记录, 请查看https://matsuri.design/",
-                    'User': user_config['User']}
+                    'User': user_config['user']}
             pub.do_publish(data, 'bot')
 
 
-def insert_video(collection, _title, _link=None, _date=None, _record=None):
-    _dict = {"Title": _title,
-             "Link": _link,
-             "Date": _date,
-             "Record": _record}
+def insert_video(collection: str, data: dict):
     db = Database(collection)
-    db.auto_insert(_title, _dict)
+    db.auto_insert(data['Title'], data)
 
 
-def worker():
+def worker() -> None:
     sub = Subscriber(('upload',))
     while True:
-        data = sub.do_subscribe()
-        if data is not False:
-            if 'Record' in data:
-                t = Thread(target=upload_record, args=(data,), daemon=True)
+        upload_dict = sub.do_subscribe()
+        if upload_dict is not False:
+            if 'Record' in upload_dict:
+                t = Thread(target=upload_record, args=(upload_dict,), daemon=True)
             else:
-                t = Thread(target=upload_video, args=(data,), daemon=True)
+                t = Thread(target=upload_video, args=(upload_dict,), daemon=True)
             t.start()
 
 

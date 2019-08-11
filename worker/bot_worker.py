@@ -28,30 +28,22 @@ def bot(message: str, group_id: tuple):
             logger.exception(e)
 
 
-def call_bot(video_dict):
+def call_bot(video_dict: dict) -> None:
     user_config = get_user(video_dict['User'])
     if user_config['bot_notice']:
         try:
             group_id = user_config['group_id']
         except KeyError:
             group_id = config['group_id']
-        # if 'Msg' not in video_dict:
-        #     if video_dict['Provide'] == 'Youtube' or 'Twitcasting' or 'Openrec' or 'Mirrativ':
-        #         bot(
-        #             f"[直播提示] {video_dict['Provide']} {video_dict.get('Title')} 正在直播 链接: {video_dict['Target']} [CQ:at,qq=all]",
-        #             group_id)
-        #     elif video_dict['Provide'] == 'Bilibili':
-        #         bot(f'[烤肉提示] [Bilibili] {video_dict.get("Title")} 链接: {video_dict.get("Target")}', group_id)
-        # else:
         bot(video_dict['Msg'], group_id)
 
 
-def worker():
+def worker() -> None:
     sub = Subscriber(('main', 'bot'))
     logger.info('Bot worker is already running')
     while True:
         video_dict = sub.do_subscribe()
-        if video_dict is not False and 'Msg' in video_dict:
+        if 'Msg' in video_dict:
             call_bot(video_dict)
 
 

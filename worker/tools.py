@@ -20,30 +20,6 @@ proxies = {
 }
 
 
-# @retry(wait_fixed=config['error_sec'])
-# def get(url: str, mode='text'):
-#     try:
-#         if config['enable_proxy']:
-#             r = requests.get(url, headers=fake_headers, proxies=proxies)
-#         else:
-#             r = requests.get(url, headers=fake_headers)
-#         if mode == 'img':
-#             return r
-#         else:
-#             return r.text
-#     except requests.RequestException:
-#         logger = logging.getLogger('run.get')
-#         logger.exception('Network Error')
-#
-#
-# def get_json(url: str) -> dict:
-#     try:
-#         return json.loads(get(url))
-#     except json.decoder.JSONDecodeError:
-#         logger = logging.getLogger('run.get_json')
-#         logger.exception('Load Json Error')
-
-
 def get_logger():
     if not isdir('log'):
         mkdir('log')
@@ -133,16 +109,23 @@ class AdjustFileName:
             self.filename = self.filename.replace(x, '#')
 
     def file_exist(self, ddir):
-        paths = f'{ddir}/{self.filename}.ts'
+        i = 0
+        paths = f'{ddir}/{self.filename}'
         if isfile(paths):
-            self.filename = self.filename + f'_{time()}.ts'
+            while True:
+                new_filename = self.filename + f'_{i}'
+                if not isfile(f'{ddir}/{new_filename}'):
+                    self.filename = new_filename
+                    break
+                i += 1
         else:
-            self.filename = self.filename + '.ts'
+            self.filename = self.filename
 
     def filename_length_limit(self):
         lens = len(self.filename)
         if lens > 80:
-            self.filename = self.filename[:80]
+            ext_name = self.filename.split('.')[-1]
+            self.filename = self.filename[:80] + ext_name
 
     def remove_emoji(self):
         emoji_pattern = re.compile(
