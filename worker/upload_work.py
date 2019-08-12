@@ -1,13 +1,13 @@
 import logging
-import re
 import subprocess
-from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from os import name
 from threading import Thread
 from urllib.parse import quote
 
+import re
+from abc import ABCMeta, abstractmethod
 from minio import Minio
+from os import name
 from retrying import retry
 
 from config import config
@@ -86,16 +86,16 @@ def upload_video(upload_dict: dict) -> None:
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
-            data = {"Title": upload_dict['Title'],
+            data = {"Title": upload_dict['Origin_Title'],
                     "Date": upload_dict['Date'],
-                    "Record": share_url}
+                    "Link": share_url}
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
             share_url = f"gets3/{quote(upload_dict['Title'])}"
-            data = {"Title": upload_dict['Title'],
-                    "Date": upload_dict['Date'],
-                    "Record": share_url}
+            data = {"Title": upload_dict['Origin_Title'],
+                    "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "Link": share_url}
             insert_video(upload_dict['User'], data)
     else:
         raise RuntimeError(f'Upload {upload_dict["Title"]} failed')
@@ -112,7 +112,7 @@ def upload_record(upload_dict: dict) -> None:
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
-            data = {"Title": upload_dict['Title'],
+            data = {"Title": upload_dict['Origin_Title'],
                     "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     "Record": share_url}
             insert_video(upload_dict['User'], data)
@@ -132,7 +132,7 @@ def worker() -> None:
     while True:
         upload_dict = sub.do_subscribe()
         if upload_dict is not False:
-            if 'Record' in upload_dict:
+            if upload_dict.get('Record', False):
                 t = Thread(target=upload_record, args=(upload_dict,), daemon=True)
             else:
                 t = Thread(target=upload_video, args=(upload_dict,), daemon=True)

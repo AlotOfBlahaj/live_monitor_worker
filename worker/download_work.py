@@ -1,6 +1,7 @@
 import subprocess
-from os.path import isfile
 from threading import Thread
+
+from os.path import isfile
 
 from config import config
 from pubsub import Subscriber, Publisher
@@ -49,6 +50,7 @@ def process_video(video_dict):
     ddir = get_ddir(user_config)
     check_ddir_is_exist(ddir)
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
+    video_dict['Origin_Title'] = video_dict['Title']
     video_dict['Title'] = AdjustFileName(video_dict['Title'] + '.ts').adjust(ddir)
     if video_dict["Provide"] == 'Youtube':
         result = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
@@ -67,7 +69,8 @@ def process_video(video_dict):
             'Target': video_dict['Target'],
             'Date': video_dict['Date'],
             'Path': f'{ddir}/{video_dict["Title"]}',
-            'User': video_dict['User']
+            'User': video_dict['User'],
+            'Origin_Title': video_dict['Origin_Title']
         }
         pub.do_publish(upload_dict, 'upload')
         pub.do_publish(video_dict['Target'], 'cq')

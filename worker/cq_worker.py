@@ -75,7 +75,8 @@ class CQWorker:
             'Target': self.video_dict['Target'],
             'Path': f'{ddir}/{self.video_dict["Title"]}',
             'User': self.video_dict['User'],
-            'Record': True
+            'Record': True,
+            'Origin_Title': self.video_dict['Origin_Title']
         }
         pub.do_publish(upload_dict, 'upload')
 
@@ -84,6 +85,7 @@ class CQWorker:
         if not user_config['record']:
             return None
         ddir = get_ddir(user_config)
+        self.video_dict['Origin_Title'] = self.video_dict['Title']
         self.video_dict['Title'] = AdjustFileName(self.video_dict['Title'] + '.txt').adjust(ddir)
         await self.ws_interaction()
         self.upload_record(ddir)
