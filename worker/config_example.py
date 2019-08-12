@@ -13,6 +13,7 @@ config = {
     's3_secret_key': '',
     'cq_ws_uri': 'ws://bot.wudifeixue.com:5006/event',
     'enable_mongodb': False,
+    'cq_record_list': [],
     'users': [
         {
             'user': 'natsuiromatsuri',

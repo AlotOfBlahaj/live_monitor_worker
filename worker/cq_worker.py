@@ -57,8 +57,10 @@ class CQWorker:
     def event_filter(event_info: dict) -> bool or dict:
         if event_info['post_type'] != 'message':
             return False
-        if event_info['user_id'] != 2944950852:
+        if event_info['user_id'] not in config['cq_record_list']:
             print(event_info)
+            return False
+        if '【' not in event_info['message'] and '】' not in event_info['message']:
             return False
         return event_info
 
@@ -92,7 +94,7 @@ class CQWorker:
 
 
 def start() -> None:
-    sub = Subscriber(('main',))
+    sub = Subscriber(('main', 'cq_rescue'))
     logger.info('Cq worker is already running')
     while True:
         video_dict = sub.do_subscribe()
