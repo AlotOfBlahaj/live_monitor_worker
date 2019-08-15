@@ -1,6 +1,6 @@
 import subprocess
 from datetime import datetime
-from os.path import isfile
+from os.path import isfile, getsize
 from threading import Thread
 
 import requests
@@ -84,8 +84,12 @@ def process_video(video_dict):
 def get_ass(video_dict):
     url = f'http://mc.wudifeixue.com:8800/history?time={video_dict["Start_timestamp"]}|{video_dict["End_timestamp"]}&host=matsuri&ass=1'
     r = requests.get(url)
-    with open(f'{config["web_dir"]}/ass', 'wb') as f:
+    path = f'{config["web_dir"]}/ass/{video_dict["Title"]}.ass'
+    with open(path, 'wb') as f:
         f.write(r.content)
+    if getsize(path) > 885:
+        return f'ass/{video_dict["Title"]}.ass'
+    return ''
 
 
 def worker():
