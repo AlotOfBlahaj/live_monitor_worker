@@ -1,7 +1,9 @@
 import subprocess
+from datetime import datetime
+from os.path import isfile
 from threading import Thread
 
-from os.path import isfile
+import requests
 
 from config import config
 from pubsub import Subscriber, Publisher
@@ -52,6 +54,7 @@ def process_video(video_dict):
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
     video_dict['Origin_Title'] = video_dict['Title']
     video_dict['Title'] = AdjustFileName(video_dict['Title'] + '.ts').adjust(ddir)
+    video_dict['Start_timestamp'] = int(datetime.now().timestamp() * 1000)
     if video_dict["Provide"] == 'Youtube':
         result = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
                             config['proxy'], ddir, user_config, config['youtube_quality'])
@@ -59,6 +62,7 @@ def process_video(video_dict):
         result = downloader(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir, user_config)
     pub = Publisher()
     if result:
+        video_dict['End_timestamp'] = int(datetime.now().timestamp() * 1000)
         data = {'Msg': f"[下载提示] {result} 已下载完成，等待上传",
                 'User': user_config['user']}
         logger.warning(data)
@@ -70,10 +74,18 @@ def process_video(video_dict):
             'Date': video_dict['Date'],
             'Path': f'{ddir}/{video_dict["Title"]}',
             'User': video_dict['User'],
-            'Origin_Title': video_dict['Origin_Title']
+            'Origin_Title': video_dict['Origin_Title'],
+            'ASS': get_ass(video_dict)
         }
         pub.do_publish(upload_dict, 'upload')
         pub.do_publish(video_dict['Target'], 'cq')
+
+
+def get_ass(video_dict):
+    url = f'http://mc.wudifeixue.com:8800/history?time={video_dict["Start_timestamp"]}|{video_dict["End_timestamp"]}&host=matsuri&ass=1'
+    r = requests.get(url)
+    with open(f'{config["web_dir"]}/ass', 'wb') as f:
+        f.write(r.content)
 
 
 def worker():

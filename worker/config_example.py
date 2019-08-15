@@ -5,6 +5,7 @@ config = {
     'group_id': ('',),
     'bot_token': '',
     'ddir': '/home/ubuntu/Matsuri',
+    'web_dir': '/home/ubuntu/matsuri.design/dist',
     'youtube_quality': '720p',
     'enable_upload': 'True',
     'upload_by': 'bd',

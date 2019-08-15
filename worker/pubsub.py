@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 import redis
 
@@ -17,12 +18,12 @@ class Subscriber:
     def do_subscribe(self) -> dict:
         while True:
             data = self.sub.parse_response()
-            logger.info(f'recv {data}')
+            logger.warning(f'{datetime.now().timestamp()}recv {data}')
             if isinstance(data[2], int):
                 continue
             else:
                 _data = json.loads(data[2])
-                logger.info(_data)
+                logger.warning(f'{datetime.now().timestamp()}recv {_data}')
                 return _data
 
     def do_subscribe_nowait(self):

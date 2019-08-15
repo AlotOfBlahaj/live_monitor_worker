@@ -1,18 +1,18 @@
 import logging
+import re
 import subprocess
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from os import name
 from threading import Thread
 from urllib.parse import quote
 
-import re
-from abc import ABCMeta, abstractmethod
 from minio import Minio
-from os import name
 from retrying import retry
 
 from config import config
 from pubsub import Subscriber, Publisher
-from tools import get_logger, ABSPATH, Database, get_ddir, get_user
+from tools import get_logger, ABSPATH, Database, get_user
 
 logger = get_logger()
 
@@ -81,21 +81,22 @@ def upload_video(upload_dict: dict) -> None:
     upload_way = upload_way_dict.get(config['upload_by'])
     uploader = upload_way()
     user_config = get_user(upload_dict['User'])
-    ddir = get_ddir(user_config)
-    uploader.upload_item(f"{ddir}/{upload_dict['Title']}", upload_dict['Title'])
+    uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Title'])
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": upload_dict['Date'],
-                    "Link": share_url}
+                    "Link": share_url,
+                    "ASS": upload_dict['ASS']}
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
             share_url = f"gets3/{quote(upload_dict['Title'])}"
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    "Link": share_url}
+                    "Link": share_url,
+                    "ASS": upload_dict['ASS']}
             insert_video(upload_dict['User'], data)
     else:
         raise RuntimeError(f'Upload {upload_dict["Title"]} failed')
