@@ -1,6 +1,7 @@
 import asyncio
 import json
 from datetime import datetime
+from typing import Union
 
 import websockets
 
@@ -51,24 +52,25 @@ class CQWorker:
                             struct_event_info = self.formatter(event_info)
                             self.txt_recorder(struct_event_info)
             except websockets.ConnectionClosedError:
-                logger.exception('Ws connection was broken')
+                logger.error('Ws connection was broken')
 
     @staticmethod
-    def event_filter(event_info: dict) -> bool or dict:
+    def event_filter(event_info: dict) -> Union[bool, dict]:
         if event_info['post_type'] != 'message':
             return False
         if event_info['user_id'] not in config['cq_record_list']:
             print(event_info)
             return False
-        if '【' not in event_info['message'] and '】' not in event_info['message']:
+        if '【' not in event_info['message']:
             return False
         return event_info
 
-    def end_record(self) -> bool:
+    def end_record(self) -> Union[bool, None]:
         target = self.end_sub.do_subscribe_nowait()
         if target == self.video_dict['Target']:
             logger.info(f'{self.video_dict["Title"]} Done')
             return True
+        return None
 
     def upload_record(self, ddir: str) -> None:
         pub = Publisher()

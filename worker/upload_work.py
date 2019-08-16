@@ -39,14 +39,21 @@ class BDUpload(Upload):
     def __init__(self) -> None:
         self.logger = logging.getLogger('run.bdupload')
 
-    def upload_item(self, item_path: str, item_name: str) -> None:
+    @retry(stop_max_attempt_number=3)
+    def upload_item(self, item_path: str, item_name: str) -> bool:
         if 'nt' in name:
             command = [f"{ABSPATH}\\BaiduPCS-Go\\BaiduPCS-Go.exe", "upload", "--nofix"]
         else:
             command = [f"{ABSPATH}/BaiduPCS-Go/BaiduPCS-Go", "upload", "--nofix"]
         command.append(item_path)
         command.append("/")
-        subprocess.run(command)
+        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           encoding='utf-8', universal_newlines=True)
+        result = p.stdout
+        if '全部上传完毕' in result:
+            return True
+        else:
+            raise RuntimeError('Upload error')
 
     @retry(stop_max_attempt_number=3)
     def share_item(self, item_name: str) -> str:
@@ -81,7 +88,9 @@ def upload_video(upload_dict: dict) -> None:
     upload_way = upload_way_dict.get(config['upload_by'])
     uploader = upload_way()
     user_config = get_user(upload_dict['User'])
-    uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Title'])
+    result = uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Title'])
+    if not result:
+        raise RuntimeError('Upload error')
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:
@@ -109,7 +118,9 @@ def upload_video(upload_dict: dict) -> None:
 def upload_record(upload_dict: dict) -> None:
     user_config = get_user(upload_dict['User'])
     uploader = BDUpload()
-    uploader.upload_item(upload_dict['Path'], upload_dict['Title'])
+    result = uploader.upload_item(upload_dict['Path'], upload_dict['Title'])
+    if not result:
+        raise RuntimeError('Upload error')
     if config['upload_by'] == 'bd':
         share_url = uploader.share_item(upload_dict['Title'])
         if config['enable_mongodb']:

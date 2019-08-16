@@ -2,6 +2,7 @@ import subprocess
 from datetime import datetime
 from os.path import isfile, getsize
 from threading import Thread
+from typing import Union
 
 import requests
 
@@ -12,14 +13,15 @@ from tools import check_ddir_is_exist, get_ddir, get_logger, get_user, AdjustFil
 logger = get_logger()
 
 
-def downloader(link, title, dl_proxy, ddir, user_config, quality='best'):
+def downloader(link: str, title: str, dl_proxy: str, ddir: str, user_config: dict,
+               quality: str = 'best') -> Union[str, bool]:
     try:
-        is_download = user_config['download']
+        is_download: bool = user_config['download']
     except KeyError:
         is_download = True
     if is_download:
         # co = ["streamlink", "--hls-live-restart", "--loglevel", "trace", "--force"]
-        co = ["streamlink", "--hls-live-restart", "--force"]
+        co: list = ["streamlink", "--hls-live-restart", "--force"]
         if config['enable_proxy']:
             co.append('--http-proxy')
             co.append(f'http://{dl_proxy}')
@@ -30,7 +32,7 @@ def downloader(link, title, dl_proxy, ddir, user_config, quality='best'):
         co.append(link)
         co.append(quality)
         subprocess.run(co)
-        paths = f'{ddir}/{title}'
+        paths: str = f'{ddir}/{title}'
         if isfile(paths):
             logger.info(f'{title} has been downloaded.')
             return title
@@ -46,20 +48,20 @@ def process_video(video_dict):
     :param video_dict: 含有直播视频数据的dict
     :return: None
     """
-    user_config = get_user(video_dict['User'])
+    user_config: dict = get_user(video_dict['User'])
     if not user_config['download']:
         return None
-    ddir = get_ddir(user_config)
+    ddir: str = get_ddir(user_config)
     check_ddir_is_exist(ddir)
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
     video_dict['Origin_Title'] = video_dict['Title']
     video_dict['Title'] = AdjustFileName(video_dict['Title'] + '.ts').adjust(ddir)
     video_dict['Start_timestamp'] = int(datetime.now().timestamp() * 1000)
     if video_dict["Provide"] == 'Youtube':
-        result = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
-                            config['proxy'], ddir, user_config, config['youtube_quality'])
+        result: str = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
+                                 config['proxy'], ddir, user_config, config['youtube_quality'])
     else:
-        result = downloader(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir, user_config)
+        result: str = downloader(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir, user_config)
     pub = Publisher()
     if result:
         video_dict['End_timestamp'] = int(datetime.now().timestamp() * 1000)
@@ -81,21 +83,28 @@ def process_video(video_dict):
         pub.do_publish(video_dict['Target'], 'cq')
 
 
-def get_ass(video_dict):
-    url = f'http://mc.wudifeixue.com:8800/history?time={video_dict["Start_timestamp"]}|{video_dict["End_timestamp"]}&host=matsuri&ass=1'
-    r = requests.get(url)
+def get_ass(video_dict: dict) -> str:
+    url = f'https://matsuri.huolonglive.com/history?time={video_dict["Start_timestamp"]}|{video_dict["End_timestamp"]}&host=matsuri&ass=1'
+    try:
+        r = requests.get(url)
+    except requests.exceptions.ConnectionError:
+        return ''
     path = f'{config["web_dir"]}/ass/{video_dict["Title"]}.ass'
     with open(path, 'wb') as f:
         f.write(r.content)
-    if getsize(path) > 885:
-        return f'ass/{video_dict["Title"]}.ass'
-    return ''
+    try:
+        if getsize(path) > 885:
+            return f'ass/{video_dict["Title"]}.ass'
+        else:
+            return ''
+    except FileExistsError:
+        return ''
 
 
 def worker():
     sub = Subscriber(('main',))
     while True:
-        data = sub.do_subscribe()
+        data: dict = sub.do_subscribe()
         if data is not False:
             t = Thread(target=process_video, args=(data,), daemon=True)
             t.start()
