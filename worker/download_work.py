@@ -3,6 +3,7 @@ from datetime import datetime
 from os.path import isfile, getsize
 from threading import Thread
 from typing import Union
+from urllib.parse import quote
 
 import requests
 
@@ -89,12 +90,14 @@ def get_ass(video_dict: dict) -> str:
         r = requests.get(url)
     except requests.exceptions.ConnectionError:
         return ''
-    path = f'{config["web_dir"]}/ass/{video_dict["Title"]}.ass'
+    filename: str = f'{video_dict["Origin_Title"]}.ass'
+    path: str = f'{config["web_dir"]}/ass/{filename}'
     with open(path, 'wb') as f:
         f.write(r.content)
     try:
         if getsize(path) > 885:
-            return f'ass/{video_dict["Title"]}.ass'
+            quote_filename: str = quote(f'{filename}')
+            return f'ass/{quote_filename}'
         else:
             return ''
     except FileExistsError:
