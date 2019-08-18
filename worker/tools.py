@@ -1,11 +1,11 @@
 import logging
-import re
-from os import mkdir
-from os.path import abspath, dirname, isdir, isfile
 from time import strftime, localtime, time
 
 import pymongo
+import re
 from bson import ObjectId
+from os import mkdir
+from os.path import abspath, dirname, isdir, isfile
 
 from config import config
 
@@ -124,8 +124,7 @@ class AdjustFileName:
     def filename_length_limit(self):
         lens = len(self.filename)
         if lens > 80:
-            ext_name = self.filename.split('.')[-1]
-            self.filename = self.filename[:80] + ext_name
+            self.filename = self.filename[:80]
 
     def remove_emoji(self):
         emoji_pattern = re.compile(

@@ -1,13 +1,13 @@
 import logging
-import re
 import subprocess
-from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from os import name
 from threading import Thread
 from urllib.parse import quote
 
+import re
+from abc import ABCMeta, abstractmethod
 from minio import Minio
+from os import name
 from retrying import retry
 
 from config import config
@@ -50,6 +50,7 @@ class BDUpload(Upload):
         p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            encoding='utf-8', universal_newlines=True)
         result = p.stdout
+        logger.warning(result)
         if '全部上传完毕' in result:
             return True
         else:

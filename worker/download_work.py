@@ -1,11 +1,11 @@
 import subprocess
 from datetime import datetime
-from os.path import isfile, getsize
 from threading import Thread
 from typing import Union
 from urllib.parse import quote
 
 import requests
+from os.path import isfile, getsize
 
 from config import config
 from pubsub import Subscriber, Publisher
@@ -29,14 +29,14 @@ def downloader(link: str, title: str, dl_proxy: str, ddir: str, user_config: dic
             co.append('--https-proxy')
             co.append(f'https://{dl_proxy}')
         co.append("-o")
-        co.append(f"{ddir}/{title}")
+        co.append(f"{ddir}/{title}.ts")
         co.append(link)
         co.append(quality)
         subprocess.run(co)
         paths: str = f'{ddir}/{title}'
         if isfile(paths):
             logger.info(f'{title} has been downloaded.')
-            return title
+            return title + '.ts'
         else:
             logger.error(f'{title} Download error, link: {link}')
             return False
@@ -56,7 +56,7 @@ def process_video(video_dict):
     check_ddir_is_exist(ddir)
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
     video_dict['Origin_Title'] = video_dict['Title']
-    video_dict['Title'] = AdjustFileName(video_dict['Title'] + '.ts').adjust(ddir)
+    video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
     video_dict['Start_timestamp'] = int(datetime.now().timestamp() * 1000)
     if video_dict["Provide"] == 'Youtube':
         result: str = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
@@ -72,10 +72,10 @@ def process_video(video_dict):
         pub.do_publish(data, 'bot')
     if config['enable_upload']:
         upload_dict = {
-            'Title': video_dict['Title'],
+            'Title': result,
             'Target': video_dict['Target'],
             'Date': video_dict['Date'],
-            'Path': f'{ddir}/{video_dict["Title"]}',
+            'Path': f'{ddir}/{result}',
             'User': video_dict['User'],
             'Origin_Title': video_dict['Origin_Title'],
             'ASS': get_ass(video_dict)

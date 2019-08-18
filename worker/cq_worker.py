@@ -34,7 +34,7 @@ class CQWorker:
         return struct_event_info
 
     def txt_recorder(self, event_info: dict):
-        with open(f'{config["ddir"]}/{self.video_dict["Title"]}', 'a') as f:
+        with open(f'{config["ddir"]}/{self.video_dict["Title"]}.txt', 'a') as f:
             f.write(f"{event_info['time']}: {event_info['msg']} \n")
         logger.warning(f"{event_info['time']}: {event_info['msg']}")
 
@@ -75,9 +75,9 @@ class CQWorker:
     def upload_record(self, ddir: str) -> None:
         pub = Publisher()
         upload_dict = {
-            'Title': self.video_dict['Title'],
+            'Title': self.video_dict['Title'] + '.txt',
             'Target': self.video_dict['Target'],
-            'Path': f'{ddir}/{self.video_dict["Title"]}',
+            'Path': f'{ddir}/{self.video_dict["Title"]}.txt',
             'User': self.video_dict['User'],
             'Record': True,
             'Origin_Title': self.video_dict['Origin_Title']
@@ -90,7 +90,7 @@ class CQWorker:
             return None
         ddir = get_ddir(user_config)
         self.video_dict['Origin_Title'] = self.video_dict['Title']
-        self.video_dict['Title'] = AdjustFileName(self.video_dict['Title'] + '.txt').adjust(ddir)
+        self.video_dict['Title'] = AdjustFileName(self.video_dict['Title']).adjust(ddir)
         await self.ws_interaction()
         self.upload_record(ddir)
 
