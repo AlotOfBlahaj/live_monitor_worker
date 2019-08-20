@@ -1,7 +1,6 @@
 import subprocess
 from datetime import datetime
 from threading import Thread
-from typing import Union
 from urllib.parse import quote
 
 import requests
@@ -14,33 +13,32 @@ from tools import check_ddir_is_exist, get_ddir, get_logger, get_user, AdjustFil
 logger = get_logger()
 
 
-def downloader(link: str, title: str, dl_proxy: str, ddir: str, user_config: dict,
-               quality: str = 'best') -> Union[str, bool]:
-    try:
-        is_download: bool = user_config['download']
-    except KeyError:
-        is_download = True
-    if is_download:
-        # co = ["streamlink", "--hls-live-restart", "--loglevel", "trace", "--force"]
-        co: list = ["streamlink", "--hls-live-restart", "--force"]
-        if config['enable_proxy']:
-            co.append('--http-proxy')
-            co.append(f'http://{dl_proxy}')
-            co.append('--https-proxy')
-            co.append(f'https://{dl_proxy}')
-        co.append("-o")
-        co.append(f"{ddir}/{title}.ts")
-        co.append(link)
-        co.append(quality)
-        subprocess.run(co)
-        paths: str = f'{ddir}/{title}'
-        if isfile(paths):
-            logger.info(f'{title} has been downloaded.')
-            return title + '.ts'
-        else:
-            logger.error(f'{title} Download error, link: {link}')
-            return False
-        # 不应该使用os.system
+def downloader(link: str, title: str, dl_proxy: str, ddir: str,
+               quality: str = 'best') -> str:
+    # co = ["streamlink", "--hls-live-restart", "--loglevel", "trace", "--force"]
+    co: list = ["streamlink", "--hls-live-restart", "--force"]
+    filename: str = title + '.ts'
+    paths: str = f'{ddir}/{filename}'
+    if config['enable_proxy']:
+        co.append('--http-proxy')
+        co.append(f'http://{dl_proxy}')
+        co.append('--https-proxy')
+        co.append(f'https://{dl_proxy}')
+    co.append("-o")
+    co.append(paths)
+    co.append(link)
+    co.append(quality)
+    subprocess.run(co)
+    if isfile(paths):
+        logger.info(f'{title} has been downloaded.')
+        return filename
+    else:
+        logger.error(f'{title} Download error, link: {link}')
+        raise RuntimeError
+
+
+def get_timestamp():
+    return int(datetime.now().timestamp() * 1000)
 
 
 def process_video(video_dict):
@@ -57,19 +55,18 @@ def process_video(video_dict):
     logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
     video_dict['Origin_Title'] = video_dict['Title']
     video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
-    video_dict['Start_timestamp'] = int(datetime.now().timestamp() * 1000)
+    video_dict['Start_timestamp'] = get_timestamp()
     if video_dict["Provide"] == 'Youtube':
-        result: str = downloader(r"https://www.youtube.com/watch?v=" + video_dict['Ref'], video_dict['Title'],
-                                 config['proxy'], ddir, user_config, config['youtube_quality'])
+        result: str = downloader(f"https://www.youtube.com/watch?v={video_dict['Ref']}", video_dict['Title'],
+                                 config['proxy'], ddir, config['youtube_quality'])
     else:
-        result: str = downloader(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir, user_config)
+        result: str = downloader(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir)
     pub = Publisher()
-    if result:
-        video_dict['End_timestamp'] = int(datetime.now().timestamp() * 1000)
-        data = {'Msg': f"[下载提示] {result} 已下载完成，等待上传",
-                'User': user_config['user']}
-        logger.warning(data)
-        pub.do_publish(data, 'bot')
+    video_dict['End_timestamp'] = get_timestamp()
+    data = {'Msg': f"[下载提示] {result} 已下载完成，等待上传",
+            'User': user_config['user']}
+    logger.warning(data)
+    pub.do_publish(data, 'bot')
     if config['enable_upload']:
         upload_dict = {
             'Title': result,
@@ -105,7 +102,7 @@ def get_ass(video_dict: dict) -> str:
 
 
 def worker():
-    sub = Subscriber(('main',))
+    sub = Subscriber(('main', 'download'))
     while True:
         data: dict = sub.do_subscribe()
         if data is not False:

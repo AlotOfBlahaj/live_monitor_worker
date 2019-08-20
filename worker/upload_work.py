@@ -1,7 +1,7 @@
 import logging
 import subprocess
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Lock
 from urllib.parse import quote
 
 import re
@@ -42,13 +42,15 @@ class BDUpload(Upload):
     @retry(stop_max_attempt_number=3)
     def upload_item(self, item_path: str, item_name: str) -> bool:
         if 'nt' in name:
-            command = [f"{ABSPATH}\\BaiduPCS-Go\\BaiduPCS-Go.exe", "upload", "--nofix"]
+            command = [f"{ABSPATH}\\BaiduPCS-Go\\BaiduPCS-Go.exe", "upload"]
         else:
-            command = [f"{ABSPATH}/BaiduPCS-Go/BaiduPCS-Go", "upload", "--nofix"]
+            command = [f"{ABSPATH}/BaiduPCS-Go/BaiduPCS-Go", "upload"]
         command.append(item_path)
         command.append("/")
-        p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           encoding='utf-8', universal_newlines=True)
+        bd_lock = Lock()
+        with bd_lock:
+            p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               encoding='utf-8', universal_newlines=True)
         result = p.stdout
         logger.warning(result)
         if '全部上传完毕' in result:

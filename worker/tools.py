@@ -104,7 +104,7 @@ class AdjustFileName:
         self.filename = filename
 
     def title_block(self):
-        replace_list = ['|', '/', '\\', ':']
+        replace_list = ['|', '/', '\\', ':', '?']
         for x in replace_list:
             self.filename = self.filename.replace(x, '#')
 
