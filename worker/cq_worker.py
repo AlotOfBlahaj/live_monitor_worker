@@ -86,6 +86,8 @@ class CQWorker:
 
     async def main(self) -> None:
         user_config = get_user(self.video_dict['User'])
+        if self.video_dict['Provide'] == 'Bilibili':
+            return None
         if not user_config['record']:
             return None
         ddir = get_ddir(user_config)
