@@ -4,7 +4,9 @@ from datetime import datetime
 
 import redis
 
-pool = redis.ConnectionPool(host='127.0.0.1', port=6379)
+from config import config
+
+pool = redis.ConnectionPool(host=config['redis_host'], port=config['redis_port'])
 logger = logging.getLogger('run.pubsub')
 
 
@@ -45,4 +47,5 @@ class Publisher:
 
     def do_publish(self, data: dict, channel):
         _data = json.dumps(data)
+        logger.warning(_data)
         self.db.publish(channel, _data)

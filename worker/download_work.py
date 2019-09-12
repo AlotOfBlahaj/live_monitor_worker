@@ -1,10 +1,10 @@
 import subprocess
 from datetime import datetime
+from os.path import isfile, getsize
 from threading import Thread
 from urllib.parse import quote
 
 import requests
-from os.path import isfile, getsize
 
 from config import config
 from pubsub import Subscriber, Publisher
@@ -87,7 +87,7 @@ def get_ass(video_dict: dict) -> str:
         r = requests.get(url)
     except requests.exceptions.ConnectionError:
         return ''
-    filename: str = f'{video_dict["Origin_Title"]}.ass'
+    filename: str = f'{video_dict["Title"]}.ass'
     path: str = f'{config["web_dir"]}/ass/{filename}'
     with open(path, 'wb') as f:
         f.write(r.content)
@@ -97,7 +97,7 @@ def get_ass(video_dict: dict) -> str:
             return f'ass/{quote_filename}'
         else:
             return ''
-    except FileExistsError:
+    except (FileExistsError, FileNotFoundError):
         return ''
 
 
