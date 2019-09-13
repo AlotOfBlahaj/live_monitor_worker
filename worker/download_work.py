@@ -48,6 +48,8 @@ def process_video(video_dict):
     :return: None
     """
     user_config: dict = get_user(video_dict['User'])
+    if video_dict['Provide'] == 'Bilibili':
+        return None
     if not user_config['download']:
         return None
     ddir: str = get_ddir(user_config)

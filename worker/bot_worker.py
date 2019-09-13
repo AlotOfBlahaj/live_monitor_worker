@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import requests
 
@@ -7,6 +8,7 @@ from pubsub import Subscriber
 from tools import get_logger, get_user
 
 logger = get_logger()
+last_at = None
 
 
 # 关于机器人HTTP API https://cqhttp.cc/docs/4.7/#/API
@@ -35,7 +37,33 @@ def call_bot(video_dict: dict) -> None:
             group_id = user_config['group_id']
         except KeyError:
             group_id = config['group_id']
-        bot(video_dict['Msg'], group_id)
+        msg = filter_at(video_dict['User'], video_dict['Msg'])
+        bot(msg, group_id)
+
+
+def filter_at(user, msg: str):
+    if '[CQ:at,qq=all]' not in msg:
+        return msg
+    global last_at
+    if last_at is None:
+        last_at = (user, datetime.now())
+        return msg
+    else:
+        now_time = datetime.now()
+        if last_at[0] != user:
+            set_last_at(user, now_time)
+            return msg
+        timedelta = now_time - last_at[1]
+        sec_delta = timedelta.seconds
+        if sec_delta <= 120:
+            msg = msg.replace('[CQ:at,qq=all]', '')
+        set_last_at(user, now_time)
+        return msg
+
+
+def set_last_at(user, at_time):
+    global last_at
+    last_at = (user, at_time)
 
 
 def worker() -> None:
