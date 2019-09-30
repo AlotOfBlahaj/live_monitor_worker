@@ -1,13 +1,13 @@
 import logging
+import re
 import subprocess
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from os import name
 from threading import Thread, Lock
 from urllib.parse import quote
 
-import re
-from abc import ABCMeta, abstractmethod
 from minio import Minio
-from os import name
 from retrying import retry
 
 from config import config
@@ -31,8 +31,9 @@ class S3Upload(Upload):
                            secret_key=config['s3_secret_key'],
                            secure=True)
 
-    def upload_item(self, item_path: str, item_name: str) -> None:
+    def upload_item(self, item_path: str, item_name: str) -> bool:
         self.minio.fput_object('matsuri', item_name, item_path)
+        return True
 
 
 class BDUpload(Upload):
@@ -104,7 +105,7 @@ def upload_video(upload_dict: dict) -> None:
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
-            share_url = f"gets3/{quote(upload_dict['Title'])}"
+            share_url = f"api/s3?title={quote(upload_dict['Title'])}"
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     "Link": share_url,
