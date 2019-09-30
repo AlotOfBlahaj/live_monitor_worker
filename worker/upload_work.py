@@ -1,13 +1,14 @@
 import logging
+import re
 import subprocess
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from os import name
 from threading import Thread, Lock
 from urllib.parse import quote
 
-import re
-from abc import ABCMeta, abstractmethod
-from minio import Minio
-from os import name
+import boto3
+from botocore.exceptions import ClientError
 from retrying import retry
 
 from config import config
@@ -26,13 +27,18 @@ class Upload(metaclass=ABCMeta):
 class S3Upload(Upload):
     def __init__(self) -> None:
         self.logger = logging.getLogger('run.s3upload')
-        self.minio = Minio(config['s3_server'],
-                           access_key=config['s3_access_key'],
-                           secret_key=config['s3_secret_key'],
-                           secure=True)
+        self.s3_client = boto3.client('s3',
+                                      endpoint_url=config['s3_server'],
+                                      aws_access_key_id=config['s3_access_key'],
+                                      aws_secret_access_key=config['s3_secret_key'])
 
-    def upload_item(self, item_path: str, item_name: str) -> None:
-        self.minio.fput_object('matsuri', item_name, item_path)
+    def upload_item(self, item_path: str, item_name: str) -> bool:
+        try:
+            self.s3_client.upload_file(item_path, config['s3_bucket'], item_name)
+            return True
+        except ClientError as e:
+            self.logger.error(e)
+            raise RuntimeError('Upload error')
 
 
 class BDUpload(Upload):
@@ -104,7 +110,7 @@ def upload_video(upload_dict: dict) -> None:
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
-            share_url = f"gets3/{quote(upload_dict['Title'])}"
+            share_url = f"api/s3?title={quote(upload_dict['Title'])}"
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                     "Link": share_url,
