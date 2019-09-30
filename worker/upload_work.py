@@ -7,8 +7,7 @@ from os import name
 from threading import Thread, Lock
 from urllib.parse import quote
 
-import boto3
-from botocore.exceptions import ClientError
+from minio import Minio
 from retrying import retry
 
 from config import config
@@ -27,18 +26,14 @@ class Upload(metaclass=ABCMeta):
 class S3Upload(Upload):
     def __init__(self) -> None:
         self.logger = logging.getLogger('run.s3upload')
-        self.s3_client = boto3.client('s3',
-                                      endpoint_url=config['s3_server'],
-                                      aws_access_key_id=config['s3_access_key'],
-                                      aws_secret_access_key=config['s3_secret_key'])
+        self.minio = Minio(config['s3_server'],
+                           access_key=config['s3_access_key'],
+                           secret_key=config['s3_secret_key'],
+                           secure=True)
 
     def upload_item(self, item_path: str, item_name: str) -> bool:
-        try:
-            self.s3_client.upload_file(item_path, config['s3_bucket'], item_name)
-            return True
-        except ClientError as e:
-            self.logger.error(e)
-            raise RuntimeError('Upload error')
+        self.minio.fput_object('matsuri', item_name, item_path)
+        return True
 
 
 class BDUpload(Upload):
