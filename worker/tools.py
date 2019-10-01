@@ -3,6 +3,7 @@ from time import strftime, localtime, time
 
 import pymongo
 import re
+import demoji
 from bson import ObjectId
 from os import mkdir
 from os.path import abspath, dirname, isdir, isfile
@@ -127,12 +128,16 @@ class AdjustFileName:
             self.filename = self.filename[:80]
 
     def remove_emoji(self):
-        emoji_pattern = re.compile(
-            u'(\U0001F1F2\U0001F1F4)|'  # Macau flag
-            u'([\U0001F1E6-\U0001F1FF]{2})|'  # flags
-            u'([\U0001F600-\U0001F64F])'  # emoticons
-            "+", flags=re.UNICODE)
-        self.filename = emoji_pattern.sub('', self.filename)
+        # emoji_pattern = re.compile(
+        #     u'(\U0001F1F2\U0001F1F4)|'  # Macau flag
+        #     u'([\U0001F1E6-\U0001F1FF]{2})|'  # flags
+        #     u'([\U0001F600-\U0001F64F])'  # emoticons
+        #     "+", flags=re.UNICODE)
+        # self.filename = emoji_pattern.sub('', self.filename)
+        try:
+            self.filename = demoji.replace(self.filename, '#')
+        except IOError:
+            demoji.download_codes()
 
     def adjust(self, ddir):
         self.remove_emoji()
