@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bot_worker import filter_at
-from download_work import process_video
+from download_work import except_set, except_bili, process_video
 from tools import AdjustFileName
 
 
@@ -24,6 +24,18 @@ class Testdownload_work(TestCase):
         process_video(video_dict)
 
 
+class TestBiliExcept(TestCase):
+    def test_except(self):
+        except_bili('test', 'Youtube')
+        self.assertIn('test', except_set)
+
+        self.assertRaises(RuntimeError, except_bili, 'test', 'BilibiliLive')
+        self.assertEqual(except_bili('test', 'Youtube'), None)
+
+        except_set.remove('test')
+        self.assertEqual(except_bili('test', 'Bilibili'), None)
+
+        
 class TestAdjustFileName(TestCase):
     def test_remove_emoji(self):
         a = AdjustFileName('''startspreadingthenews yankees win great start by 🎅🏾 going 5strong innings with 5k’s🔥 🐂
