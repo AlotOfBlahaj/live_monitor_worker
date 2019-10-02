@@ -1,6 +1,6 @@
-requests
 certifi==2019.6.16
 chardet==3.0.4
+demoji==0.1.5
 future==0.17.1
 idna==2.8
 iso-639==0.4.5

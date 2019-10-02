@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from bot_worker import filter_at
 from download_work import except_set, except_bili, process_video, over_video_format
+from tools import AdjustFileName
 
 
 class TestFilter_at(TestCase):
@@ -39,3 +40,14 @@ class TestOver_video_format(TestCase):
     def test(self):
         result = over_video_format('test', '/home/fzxiao')
         self.assertEqual(result, 'test.flv')
+        
+class TestAdjustFileName(TestCase):
+    def test_remove_emoji(self):
+        a = AdjustFileName('''startspreadingthenews yankees win great start by 🎅🏾 going 5strong innings with 5k’s🔥 🐂
+... solo homerun 🌋🌋 with 2 solo homeruns and👹 3run homerun… 🤡 🚣🏼 👨🏽‍⚖️ with rbi’s … 🔥🔥
+... 🇲🇽 and 🇳🇮 to close the game🔥🔥!!!….''')
+        a.remove_emoji()
+        print(a.filename)
+        self.assertEqual(a.filename, '''startspreadingthenews yankees win great start by # going 5strong innings with 5k’s# #
+... solo homerun ## with 2 solo homeruns and# 3run homerun… # # # with rbi’s … ##
+... # and # to close the game##!!!….''')
