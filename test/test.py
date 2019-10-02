@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bot_worker import filter_at
-from download_work import except_set, except_bili, process_video
+from download_work import except_set, except_bili, process_video, over_video_format
 
 
 class TestFilter_at(TestCase):
@@ -33,3 +33,9 @@ class TestBiliExcept(TestCase):
 
         except_set.remove('test')
         self.assertEqual(except_bili('test', 'Bilibili'), None)
+
+
+class TestOver_video_format(TestCase):
+    def test(self):
+        result = over_video_format('test', '/home/fzxiao')
+        self.assertEqual(result, 'test.flv')

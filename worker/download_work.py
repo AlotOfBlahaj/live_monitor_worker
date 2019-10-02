@@ -23,7 +23,7 @@ def except_bili(user, provide):
         raise RuntimeError(f'{user} is downloading, skip bilibili')
 
 
-def check_downloaded(paths):
+def check_file(paths):
     if isfile(paths):
         logger.info(f'{paths} has been downloaded.')
         return True
@@ -32,11 +32,21 @@ def check_downloaded(paths):
         raise RuntimeError
 
 
+def over_video_format(title: str, ddir: str) -> str:
+    filename: str = title + '.flv'
+    old_paths: str = f'{ddir}/{title}.ts'
+    paths: str = f'{ddir}/{filename}'
+    co: list = ['ffmpeg', '-i', old_paths, '-vcodec', 'copy', '-acodec', 'copy', '-bsf:a', 'aac_adtstoasc', paths]
+    subprocess.run(co)
+    check_file(paths)
+    return filename
+
+
 def download_by_streamlink(link: str, title: str, dl_proxy: str, ddir: str,
                            quality: str = 'best') -> str:
     # co = ["streamlink", "--hls-live-restart", "--loglevel", "trace", "--force"]
     co: list = ["streamlink", "--hls-live-restart", "--force"]
-    filename: str = title + '.flv'
+    filename: str = title + '.ts'
     paths: str = f'{ddir}/{filename}'
     if config['enable_proxy']:
         co.append('--http-proxy')
@@ -48,12 +58,13 @@ def download_by_streamlink(link: str, title: str, dl_proxy: str, ddir: str,
     co.append(link)
     co.append(quality)
     subprocess.run(co)
-    if check_downloaded(paths):
+    if check_file(paths):
+        filename = over_video_format(title, ddir)
         return filename
 
 
 def download_by_youtube_dl(link: str, title: str, dl_proxy: str, ddir: str):
-    filename: str = title + '.flv'
+    filename: str = title + '.ts'
     paths: str = f'{ddir}/{filename}'
     co: list = ['youtube-dl', '-o', paths]
     if config['enable_proxy']:
@@ -61,7 +72,8 @@ def download_by_youtube_dl(link: str, title: str, dl_proxy: str, ddir: str):
         co.append(f'http://{dl_proxy}')
     co.append(link)
     subprocess.run(co)
-    if check_downloaded(paths):
+    if check_file(paths):
+        filename = over_video_format(title, ddir)
         return filename
 
 
@@ -73,7 +85,7 @@ def download_by_biliroku(mid: int, title: str, dl_proxy: str, ddir: str):
         co.append('--proxy')
         co.append(f'http://{dl_proxy}')
     subprocess.run(co)
-    if check_downloaded(paths):
+    if check_file(paths):
         return filename
 
 
