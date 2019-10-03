@@ -1,6 +1,7 @@
 import subprocess
 from datetime import datetime
-from os.path import isfile, getsize
+from os import mkdir
+from os.path import isfile, getsize, isdir
 from threading import Thread
 from urllib.parse import quote
 
@@ -123,17 +124,19 @@ def send_upload(video_dict, path):
     if not config['enable_upload']:
         return
     pub = Publisher()
+    ass, txt = get_trans_ass(video_dict['Title'], video_dict['Start_timestamp'], video_dict['End_timestamp'])
     upload_dict = {
         'Title': video_dict['Title'],
         'Target': video_dict['Target'],
-        'Date': video_dict['Date'],
+        'Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'Path': path,
         'User': video_dict['User'],
         'Origin_Title': video_dict['Origin_Title'],
-        'ASS': get_ass(video_dict)
+        'ASS': ass,
+        'Txt': txt
     }
     pub.do_publish(upload_dict, 'upload')
-    pub.do_publish(video_dict['Target'], 'cq')
+    # pub.do_publish(video_dict['Target'], 'cq')
 
 
 def process_video(video_dict):
@@ -158,24 +161,36 @@ def process_video(video_dict):
     send_upload(video_dict, f'{ddir}/{video_dict["Title"]}')
 
 
-def get_ass(video_dict: dict) -> str:
-    url = f'https://matsuri.huolonglive.com/history?time={video_dict["Start_timestamp"]}|{video_dict["End_timestamp"]}&host=matsuri&ass=1'
-    try:
-        r = requests.get(url)
-    except requests.exceptions.ConnectionError:
-        return ''
-    filename: str = f'{video_dict["Title"]}.ass'
-    path: str = f'{config["web_dir"]}/ass/{filename}'
-    with open(path, 'wb') as f:
-        f.write(r.content)
-    try:
-        if getsize(path) > 885:
-            quote_filename: str = quote(f'{filename}')
-            return f'ass/{quote_filename}'
-        else:
+def get_trans_ass(title: str, s_t: int, e_t: int) -> tuple:
+    for mode in [(
+            f'https://matsuri.huolonglive.com/history?time={s_t}|{e_t}&host=matsuri&ass=1',
+            'ass'),
+        (
+                f'https://matsuri.huolonglive.com/history?time={s_t}|{e_t}&host=matsuri',
+                'txt')]:
+        try:
+            r = requests.get(mode[0])
+        except requests.exceptions.ConnectionError:
             return ''
-    except (FileExistsError, FileNotFoundError):
-        return ''
+        filename: str = f'{title}.{mode[1]}'
+        if not isdir(f'{config["web_dir"]}/{mode[1]}'):
+            mkdir(f'{config["web_dir"]}/{mode[1]}')
+        path: str = f'{config["web_dir"]}/{mode[1]}/{filename}'
+        try:
+            with open(path, 'wb') as f:
+                f.write(r.content)
+            if mode[1] == 'ass':
+                if getsize(path) > 885:
+                    quote_filename: str = quote(f'{filename}')
+                    ass = f'ass/{quote_filename}'
+                else:
+                    ass = ''
+            else:
+                if getsize(path) > 0:
+                    quote_filename: str = quote(f'{filename}')
+                    return ass, f'txt/{quote_filename}'
+        except (FileExistsError, FileNotFoundError):
+            return '', ''
 
 
 def worker():

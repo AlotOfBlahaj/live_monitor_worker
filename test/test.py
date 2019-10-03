@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bot_worker import filter_at
-from download_work import except_set, except_bili, process_video, over_video_format
+from download_work import except_set, except_bili, process_video, over_video_format, get_trans_ass
 from tools import AdjustFileName
 
 
@@ -23,6 +23,14 @@ class Testdownload_work(TestCase):
         }
         process_video(video_dict)
 
+    def test_get_trans_ass(self):
+        title = 'test'
+        s_t = 157110150220
+        e_t = 1565700952162
+        ass, txt = get_trans_ass(title, s_t, e_t)
+        self.assertEqual('ass/test.ass', ass)
+        self.assertEqual('txt/test.txt', txt)
+
 
 class TestBiliExcept(TestCase):
     def test_except(self):
@@ -40,7 +48,8 @@ class TestOver_video_format(TestCase):
     def test(self):
         result = over_video_format('test', '/home/fzxiao')
         self.assertEqual(result, 'test.flv')
-        
+
+
 class TestAdjustFileName(TestCase):
     def test_remove_emoji(self):
         a = AdjustFileName('''startspreadingthenews yankees win great start by 🎅🏾 going 5strong innings with 5k’s🔥 🐂
