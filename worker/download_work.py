@@ -108,7 +108,10 @@ def download_video(video_dict, ddir):
             result: str = download_by_streamlink(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir)
     finally:
         global except_set
-        except_set.remove(video_dict['User'])
+        try:
+            except_set.remove(video_dict['User'])
+        except KeyError:
+            pass
     return result
 
 
