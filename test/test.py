@@ -30,6 +30,11 @@ class Testdownload_work(TestCase):
         ass, txt = get_trans_ass(title, s_t, e_t)
         self.assertEqual('ass/test.ass', ass)
         self.assertEqual('txt/test.txt', txt)
+        s_t = 0
+        e_t = 0
+        ass, txt = get_trans_ass(title, s_t, e_t)
+        self.assertEqual('', ass)
+        self.assertEqual('', txt)
 
 
 class TestBiliExcept(TestCase):
