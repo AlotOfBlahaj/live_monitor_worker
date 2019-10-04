@@ -192,6 +192,8 @@ def get_trans_ass(title: str, s_t: int, e_t: int) -> tuple:
                 if getsize(path) > 0:
                     quote_filename: str = quote(f'{filename}')
                     return ass, f'txt/{quote_filename}'
+                else:
+                    return ass, ''
         except (FileExistsError, FileNotFoundError):
             return '', ''
 
