@@ -12,11 +12,11 @@ last_at = None
 
 
 # 关于机器人HTTP API https://cqhttp.cc/docs/4.7/#/API
-def bot(message: str, group_id: tuple):
+def bot(message: str, bot_config: dict):
     # 传入JSON时，应使用这个UA
     headers = {'Content-Type': 'application/json',
-               'Authorization': f'Bearer {config["bot_token"]}'}
-    for _group_id in group_id:
+               'Authorization': f'Bearer {bot_config["bot_token"]}'}
+    for _group_id in bot_config['group_id']:
         _msg = {
             'group_id': int(_group_id),
             'message': message,
@@ -24,8 +24,9 @@ def bot(message: str, group_id: tuple):
         }
         msg = json.dumps(_msg)
         try:
-            requests.post(f'http://{config["bot_host"]}/send_group_msg', data=msg, headers=headers)
+            r = requests.post(f'http://{bot_config["bot_host"]}/send_group_msg', data=msg, headers=headers)
             logger.warning(f'send {_msg}')
+            logger.warning(r.text)
         except requests.exceptions.RequestException as e:
             logger.exception(e)
 
@@ -33,12 +34,15 @@ def bot(message: str, group_id: tuple):
 def call_bot(video_dict: dict) -> None:
     user_config = get_user(video_dict['User'])
     if user_config['bot_notice']:
-        try:
-            group_id = user_config['group_id']
-        except KeyError:
-            group_id = config['group_id']
+        bot_config = dict()
+        config_item = ['group_id', 'bot_host', 'bot_token']
+        for item in config_item:
+            if item in user_config:
+                bot_config[item] = user_config[item]
+            else:
+                bot_config[item] = config[item]
         msg = filter_at(video_dict['User'], video_dict['Msg'])
-        bot(msg, group_id)
+        bot(msg, bot_config)
 
 
 def filter_at(user, msg: str):

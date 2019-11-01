@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from bot_worker import filter_at
+from bot_worker import filter_at, call_bot
 from download_work import except_set, except_bili, process_video, over_video_format, get_trans_ass
 from tools import AdjustFileName
 
@@ -65,3 +65,13 @@ class TestAdjustFileName(TestCase):
         self.assertEqual(a.filename, '''startspreadingthenews yankees win great start by # going 5strong innings with 5k’s# #
 ... solo homerun ## with 2 solo homeruns and# 3run homerun… # # # with rbi’s … ##
 ... # and # to close the game##!!!….''')
+
+
+class TestBot(TestCase):
+    def test_call_bot(self):
+        video_dict = {
+            'Msg': '好了我活了',
+            'User': 'pikurusu'
+        }
+        call_bot(video_dict)
+        self.skipTest('success')

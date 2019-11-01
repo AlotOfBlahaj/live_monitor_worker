@@ -4,8 +4,7 @@ config = {
     'enable_proxy': False,
     'proxy': '',
     'bot_host': '',
-    'group_id': (
-        "834327334", "831919128", "835165828", "799048185", "602540125", "1018952326", "318939096", "970208118"),
+    'group_id': (),
     'bot_token': '',
     'ddir': '/home/ubuntu/Matsuri',
     'web_dir': '/home/ubuntu/matsuri.design',
@@ -16,7 +15,7 @@ config = {
     's3_access_key': '',
     's3_secret_key': '',
     's3_bucket': '',
-    'enable_mongodb': True,
+    'enable_mongodb': False,
     'users': [
         {
             'user': 'natsuiromatsuri',
