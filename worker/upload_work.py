@@ -30,8 +30,10 @@ class S3Upload(Upload):
                            secret_key=config['s3_secret_key'],
                            secure=True)
 
+    @retry(stop_max_attempt_number=3, wait_fixed=10)
     def upload_item(self, item_path: str, item_name: str) -> bool:
-        self.minio.fput_object('matsuri', item_name, item_path)
+        self.minio.fput_object(config['s3_bucket'], item_name, item_path)
+        self.logger.warning(f'{item_name} has been uploaded')
         return True
 
 
@@ -91,11 +93,11 @@ def upload_video(upload_dict: dict) -> None:
     upload_way = upload_way_dict.get(config['upload_by'])
     uploader = upload_way()
     user_config = get_user(upload_dict['User'])
-    result = uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Title'])
+    result = uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Filename'])
     if not result:
         raise RuntimeError('Upload error')
     if config['upload_by'] == 'bd':
-        share_url = uploader.share_item(upload_dict['Title'])
+        share_url = uploader.share_item(upload_dict['Filename'])
         if config['enable_mongodb']:
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": upload_dict['Date'],
@@ -105,38 +107,26 @@ def upload_video(upload_dict: dict) -> None:
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
-            share_url = f"api/s3?title={quote(upload_dict['Title'])}"
+            share_url = f"api/s3?title={quote(upload_dict['Filename'])}"
+            m3u8_url = f"api/s3?title={quote(upload_dict['Title']) + '.m3u8'}"
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": upload_dict['Date'],
                     "Link": share_url,
                     "ASS": upload_dict['ASS'],
-                    "Txt": upload_dict['Txt']}
+                    "Txt": upload_dict['Txt'],
+                    "M3U8": m3u8_url}
             insert_video(upload_dict['User'], data)
     else:
-        raise RuntimeError(f'Upload {upload_dict["Title"]} failed')
+        raise RuntimeError(f'Upload {upload_dict["Filename"]} failed')
     pub = Publisher()
     data = {'Msg': f"[下载提示] {upload_dict['Title']} 已上传, 请查看https://matsuri.design/",
             'User': user_config['user']}
     pub.do_publish(data, 'bot')
 
 
-# def upload_record(upload_dict: dict) -> None:
-#     user_config = get_user(upload_dict['User'])
-#     uploader = BDUpload()
-#     result = uploader.upload_item(upload_dict['Path'], upload_dict['Title'])
-#     if not result:
-#         raise RuntimeError('Upload error')
-#     if config['upload_by'] == 'bd':
-#         share_url = uploader.share_item(upload_dict['Title'])
-#         if config['enable_mongodb']:
-#             data = {"Title": upload_dict['Origin_Title'],
-#                     "Date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-#                     "Record": share_url}
-#             insert_video(upload_dict['User'], data)
-#             pub = Publisher()
-#             data = {'Msg': f"[同传提示] {upload_dict['Title']} 已记录, 请查看https://matsuri.design/",
-#                     'User': user_config['user']}
-#             pub.do_publish(data, 'bot')
+def upload_hls(upload_dict):
+    uploader = S3Upload()
+    uploader.upload_item(f"{upload_dict['Path']}", upload_dict['Filename'])
 
 
 def insert_video(collection: str, data: dict):
@@ -149,10 +139,10 @@ def worker() -> None:
     while True:
         upload_dict = sub.do_subscribe()
         if upload_dict is not False:
-            # if upload_dict.get('Record', False):
-            #     t = Thread(target=upload_record, args=(upload_dict,), daemon=True)
-            # else:
-            t = Thread(target=upload_video, args=(upload_dict,), daemon=True)
+            if upload_dict.get('Is_m3u8', False):
+                t = Thread(target=upload_hls, args=(upload_dict,), daemon=True)
+            else:
+                t = Thread(target=upload_video, args=(upload_dict,), daemon=True)
             t.start()
 
 
