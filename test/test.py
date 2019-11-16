@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bot_worker import filter_at, call_bot
-from download_work import except_set, except_bili, process_video, over_video_format, get_trans_ass
+from download_work import except_set, except_bili, process_video, get_trans_ass, send_hls
 from tools import AdjustFileName
 
 
@@ -49,10 +49,10 @@ class TestBiliExcept(TestCase):
         self.assertEqual(except_bili('test', 'Bilibili'), None)
 
 
-class TestOver_video_format(TestCase):
-    def test(self):
-        result = over_video_format('test', '/home/fzxiao')
-        self.assertEqual(result, 'test.flv')
+class TestCallHls(TestCase):
+    def test_call(self):
+        send_hls('pikurusu_003575630177', 'C:/Users/FZxia/Downloads',
+                 'C:/Users/FZxia/Downloads/pikurusu_003575630177.flv')
 
 
 class TestAdjustFileName(TestCase):
@@ -70,7 +70,7 @@ class TestAdjustFileName(TestCase):
 class TestBot(TestCase):
     def test_call_bot(self):
         video_dict = {
-            'Msg': '好了我活了',
+            'Msg': '[CQ:at,qq=all]',
             'User': 'pikurusu'
         }
         call_bot(video_dict)

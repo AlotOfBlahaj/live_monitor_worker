@@ -33,20 +33,10 @@ def check_file(paths):
         raise RuntimeError
 
 
-def over_video_format(title: str, ddir: str) -> str:
-    filename: str = title + '.flv'
-    old_paths: str = f'{ddir}/{title}.ts'
-    paths: str = f'{ddir}/{filename}'
-    co: list = ['ffmpeg', '-i', old_paths, '-vcodec', 'copy', '-acodec', 'copy', '-bsf:a', 'aac_adtstoasc', paths]
-    subprocess.run(co)
-    check_file(paths)
-    return filename
-
-
 def download_by_streamlink(link: str, title: str, dl_proxy: str, ddir: str,
                            quality: str = 'best') -> str:
     # co = ["streamlink", "--hls-live-restart", "--loglevel", "trace", "--force"]
-    co: list = ["streamlink", "--hls-live-restart", "--force"]
+    co: list = ["streamlink", "--hls-live-restart", "--force", "--hls-timeout", "120"]
     filename: str = title + '.ts'
     paths: str = f'{ddir}/{filename}'
     if config['enable_proxy']:
@@ -59,9 +49,8 @@ def download_by_streamlink(link: str, title: str, dl_proxy: str, ddir: str,
     co.append(link)
     co.append(quality)
     subprocess.run(co)
-    if check_file(paths):
-        filename = over_video_format(title, ddir)
-        return filename
+    check_file(paths)
+    return filename
 
 
 def download_by_youtube_dl(link: str, title: str, dl_proxy: str, ddir: str):
@@ -73,9 +62,8 @@ def download_by_youtube_dl(link: str, title: str, dl_proxy: str, ddir: str):
         co.append(f'http://{dl_proxy}')
     co.append(link)
     subprocess.run(co)
-    if check_file(paths):
-        filename = over_video_format(title, ddir)
-        return filename
+    check_file(paths)
+    return filename
 
 
 def download_by_biliroku(mid: int, title: str, dl_proxy: str, ddir: str):
@@ -130,6 +118,7 @@ def send_upload(video_dict, path):
     ass, txt = get_trans_ass(video_dict['Title'], video_dict['Start_timestamp'], video_dict['End_timestamp'])
     upload_dict = {
         'Title': video_dict['Title'],
+        'Filename': video_dict['Filename'],
         'Target': video_dict['Target'],
         'Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'Path': path,
@@ -140,6 +129,16 @@ def send_upload(video_dict, path):
     }
     pub.do_publish(upload_dict, 'upload')
     # pub.do_publish(video_dict['Target'], 'cq')
+
+
+def send_hls(title, ddir, path):
+    pub = Publisher()
+    hls_dict = {
+        'Title': title,
+        'Ddir': ddir,
+        'Path': path,
+    }
+    pub.do_publish(hls_dict, 'hls')
 
 
 def process_video(video_dict):
@@ -158,10 +157,11 @@ def process_video(video_dict):
     video_dict['Origin_Title'] = video_dict['Title']
     video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
     video_dict['Start_timestamp'] = get_timestamp()
-    video_dict['Title'] = download_video(video_dict, ddir)
+    video_dict['Filename'] = download_video(video_dict, ddir)
     video_dict['End_timestamp'] = get_timestamp()
     send_bot(video_dict['Title'], user_config['user'])
-    send_upload(video_dict, f'{ddir}/{video_dict["Title"]}')
+    send_upload(video_dict, f'{ddir}/{video_dict["Filename"]}')
+    send_hls(video_dict['Title'], ddir, f'{ddir}/{video_dict["Filename"]}')
 
 
 def get_trans_ass(title: str, s_t: int, e_t: int) -> tuple:
