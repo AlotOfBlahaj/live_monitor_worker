@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bot_worker import filter_at, call_bot
-from download_work import except_set, except_bili, process_video, get_trans_ass, send_hls
+from download_work import current_live, check_duplicate, process_video, get_trans_ass, send_hls, end_live
 from tools import AdjustFileName
 
 
@@ -39,14 +39,12 @@ class Testdownload_work(TestCase):
 
 class TestBiliExcept(TestCase):
     def test_except(self):
-        except_bili('test', 'Youtube')
-        self.assertIn('test', except_set)
+        check_duplicate('test')
+        self.assertIn('test', current_live)
 
-        self.assertRaises(RuntimeError, except_bili, 'test', 'BilibiliLive')
-        self.assertEqual(except_bili('test', 'Youtube'), None)
-
-        except_set.remove('test')
-        self.assertEqual(except_bili('test', 'Bilibili'), None)
+        self.assertRaises(RuntimeError, check_duplicate, 'test')
+        end_live('test')
+        self.assertEqual(check_duplicate('test'), None)
 
 
 class TestCallHls(TestCase):

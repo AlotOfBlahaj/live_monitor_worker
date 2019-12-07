@@ -12,16 +12,19 @@ from pubsub import Subscriber, Publisher
 from tools import check_ddir_is_exist, get_ddir, get_logger, get_user, AdjustFileName
 
 logger = get_logger()
-except_set: set = set()
+current_live: set = set()
 
 
-def except_bili(user, provide):
-    global except_set
-    if provide != 'BilibiliLive':
-        except_set.add(user)
-        return
-    if user in except_set:
-        raise RuntimeError(f'{user} is downloading, skip bilibili')
+def check_duplicate(user):
+    if user in current_live:
+        logger.error(f'{user} is downloading, skip')
+        raise RuntimeError
+    else:
+        current_live.add(user)
+
+
+def end_live(user):
+    current_live.discard(user)
 
 
 def check_file(paths):
@@ -66,18 +69,6 @@ def download_by_youtube_dl(link: str, title: str, dl_proxy: str, ddir: str):
     return filename
 
 
-def download_by_biliroku(mid: int, title: str, dl_proxy: str, ddir: str):
-    filename: str = title + '.flv'
-    paths: str = f'{ddir}/{filename}'
-    co: list = ['sudo', 'docker', 'run', '-v', f'{ddir}:/bili', 'biliroku', '-n', mid, '-o', f'bili/{filename}']
-    if config['enable_proxy']:
-        co.append('--proxy')
-        co.append(f'http://{dl_proxy}')
-    subprocess.run(co)
-    if check_file(paths):
-        return filename
-
-
 def get_timestamp():
     return int(datetime.now().timestamp() * 1000)
 
@@ -90,14 +81,12 @@ def download_video(video_dict, ddir):
                                                  config['proxy'], ddir, config['youtube_quality'])
         elif video_dict["Provide"] == 'Bilibili':
             result: str = download_by_youtube_dl(video_dict['Target'], video_dict['Title'], config['proxy'], ddir)
-        elif video_dict["Provide"] == 'BilibiliLive':
-            result: str = download_by_biliroku(video_dict['Mid'], video_dict['Title'], config['proxy'], ddir)
         else:
             result: str = download_by_streamlink(video_dict['Ref'], video_dict['Title'], config['proxy'], ddir)
     finally:
-        global except_set
+        global current_live
         try:
-            except_set.remove(video_dict['User'])
+            current_live.remove(video_dict['User'])
         except KeyError:
             pass
     return result
@@ -147,21 +136,24 @@ def process_video(video_dict):
     :param video_dict: 含有直播视频数据的dict
     :return: None
     """
-    user_config: dict = get_user(video_dict['User'])
-    if not user_config['download']:
-        return None
-    ddir: str = get_ddir(user_config)
-    check_ddir_is_exist(ddir)
-    logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
-    except_bili(video_dict['User'], video_dict['Provide'])
-    video_dict['Origin_Title'] = video_dict['Title']
-    video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
-    video_dict['Start_timestamp'] = get_timestamp()
-    video_dict['Filename'] = download_video(video_dict, ddir)
-    video_dict['End_timestamp'] = get_timestamp()
-    send_bot(video_dict['Title'], user_config['user'])
-    send_upload(video_dict, f'{ddir}/{video_dict["Filename"]}')
-    send_hls(video_dict['Title'], ddir, f'{ddir}/{video_dict["Filename"]}')
+    try:
+        user_config: dict = get_user(video_dict['User'])
+        if not user_config['download']:
+            return None
+        ddir: str = get_ddir(user_config)
+        check_ddir_is_exist(ddir)
+        logger.info(f'{video_dict["Provide"]} Found A Live, starting downloader')
+        check_duplicate(video_dict['User'])
+        video_dict['Origin_Title'] = video_dict['Title']
+        video_dict['Title'] = AdjustFileName(video_dict['Title']).adjust(ddir)
+        video_dict['Start_timestamp'] = get_timestamp()
+        video_dict['Filename'] = download_video(video_dict, ddir)
+        video_dict['End_timestamp'] = get_timestamp()
+        send_bot(video_dict['Title'], user_config['user'])
+        send_upload(video_dict, f'{ddir}/{video_dict["Filename"]}')
+        send_hls(video_dict['Title'], ddir, f'{ddir}/{video_dict["Filename"]}')
+    finally:
+        end_live(video_dict['User'])
 
 
 def get_trans_ass(title: str, s_t: int, e_t: int) -> tuple:
