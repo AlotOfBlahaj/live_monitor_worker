@@ -107,8 +107,8 @@ def upload_video(upload_dict: dict) -> None:
             insert_video(upload_dict['User'], data)
     elif config['upload_by'] == 's3':
         if config['enable_mongodb']:
-            share_url = f"api/s3?title={quote(upload_dict['Filename'])}"
-            m3u8_url = f"api/s3?title={quote(upload_dict['Title']) + '.m3u8'}"
+            share_url = f'https://matsuri.design/{config["s3_bucket"]}/{quote(upload_dict["Filename"])}'
+            m3u8_url = f'https://matsuri.design/{config["s3_bucket"]}/{quote(upload_dict["Title"]) + ".m3u8"}'
             data = {"Title": upload_dict['Origin_Title'],
                     "Date": upload_dict['Date'],
                     "Link": share_url,
