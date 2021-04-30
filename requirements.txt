@@ -21,6 +21,6 @@ six==1.12.0
 streamlink
 typed-ast==1.4.0
 typing-extensions==3.7.4
-urllib3==1.25.3
+urllib3==1.25.8
 websocket-client==0.56.0
 websockets==8.0.2
